@@ -189,7 +189,7 @@ class QueryBuilderHandler
     foreach ($result as $item) {
       $temp[$result->$key] = $item;
     }
-    return $result;
+    return $temp;
   }
 
   /**
