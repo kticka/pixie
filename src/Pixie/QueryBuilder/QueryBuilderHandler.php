@@ -187,7 +187,7 @@ class QueryBuilderHandler
     $temp = [];
     $result = $this->get();
     foreach ($result as $item) {
-      $temp[$result->$key] = $item;
+      $temp[$item->$key] = $item;
     }
     return $temp;
   }
