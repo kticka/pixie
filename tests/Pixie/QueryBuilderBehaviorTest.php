@@ -1,6 +1,6 @@
 <?php namespace Pixie;
 
-use Pixie\QueryBuilder\QueryBuilderHandler;
+use Mockery as m;
 
 class QueryBuilderTest extends TestCase
 {
@@ -301,20 +301,5 @@ class QueryBuilderTest extends TestCase
             "SELECT * FROM `cb_my_table` WHERE `foo` NOT IN (SELECT `foo` FROM `cb_some_table` WHERE `id` = 1)",
             $query->getQuery()->getRawSql()
         );
-    }
-
-    public function testYouCanSetFetchModeFromConstructorAsOptionalParameter()
-    {
-        $selectedFetchMode = \PDO::FETCH_ASSOC;
-        $builder = new QueryBuilderHandler($this->mockConnection, $selectedFetchMode);
-        $this->assertEquals($selectedFetchMode, $builder->getFetchMode());
-    }
-
-    public function testFetchModeSelectedWillBeMaintainedBetweenInstances(){
-        $selectedFetchMode = \PDO::FETCH_ASSOC;
-        $builder = new QueryBuilderHandler($this->mockConnection, $selectedFetchMode);
-        $newBuilder = $builder->table('stuff');
-
-        $this->assertEquals($selectedFetchMode, $newBuilder->getFetchMode());
     }
 }

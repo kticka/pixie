@@ -1,14 +1,5 @@
-**This project is Not Actively Maintained but most of the features are fully working and there are no major security issues, I'm just not giving it much time.**
-
-
-# Pixie Query Builder 
-
-[![Build Status](https://travis-ci.org/usmanhalalit/pixie.svg?branch=master)](https://travis-ci.org/usmanhalalit/pixie)
-[![Total Downloads](https://poser.pugx.org/usmanhalalit/pixie/downloads)](https://packagist.org/packages/usmanhalalit/pixie)
-[![Daily Downloads](https://poser.pugx.org/usmanhalalit/pixie/d/daily)](https://packagist.org/packages/usmanhalalit/pixie)
-
-
-A lightweight, expressive, framework agnostic query builder for PHP it can also be referred as a Database Abstraction Layer. Pixie supports MySQL, SQLite and PostgreSQL and it takes care of query sanitization, table prefixing and many other things with a unified API.
+# Pixie Query Builder [![Build Status](https://travis-ci.org/usmanhalalit/pixie.png?branch=master)](https://travis-ci.org/usmanhalalit/pixie)
+A lightweight, expressive, framework agnostic query builder for PHP it can also be referred as a Database Abstraction Layer. Pixie supports MySQL, SQLite and PostgreSQL and it takes care of query sanitization, table prefixing and many other things with a unified API. At least PHP 5.3 is required.
 
 It has some advanced features like:
 
@@ -26,7 +17,7 @@ The syntax is quite similar to Laravel's query builder.
 require 'vendor/autoload.php';
 
 // Create a connection, once only.
-$config = [
+$config = array(
             'driver'    => 'mysql', // Db driver
             'host'      => 'localhost',
             'database'  => 'your-database',
@@ -35,11 +26,11 @@ $config = [
             'charset'   => 'utf8', // Optional
             'collation' => 'utf8_unicode_ci', // Optional
             'prefix'    => 'cb_', // Table prefix, optional
-            'options'   => [ // PDO constructor options, optional
+            'options'   => array( // PDO constructor options, optional
                 PDO::ATTR_TIMEOUT => 5,
                 PDO::ATTR_EMULATE_PREPARES => false,
-            ],
-        ];
+            ),
+        );
 
 new \Pixie\Connection('mysql', $config, 'QB');
 ```
@@ -95,7 +86,7 @@ Library on [Packagist](https://packagist.org/packages/usmanhalalit/pixie).
  - [Connection](#connection)
     - [Alias](#alias)
     - [Multiple Connection](#alias)
-    - [SQLite and PostgreSQL Config Sample](#sqlite-and-postgresql-config-sample)
+    - [SQLite and PostgreSQL Config Sample](sqlite-and-postgresql-config-sample)
  - [Query](#query)
  - [**Select**](#select)
     - [Get Easily](#get-easily)
@@ -665,4 +656,4 @@ Here are some cases where Query Events can be extremely helpful:
 ___
 If you find any typo then please edit and send a pull request.
 
-&copy; 2020 [Muhammad Usman](http://usman.it/). Licensed under MIT license.
+&copy; 2016 [Muhammad Usman](http://usman.it/). Licensed under MIT license.

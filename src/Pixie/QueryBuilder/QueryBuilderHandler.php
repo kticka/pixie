@@ -20,10 +20,10 @@ class QueryBuilderHandler
   /**
    * @var array
    */
-  protected $statements = [];
+  protected $statements = array();
 
   /**
-   * @var PDO
+   * @var \PDO
    */
   protected $pdo;
 
@@ -47,15 +47,14 @@ class QueryBuilderHandler
    *
    * @var array
    */
-  protected $fetchParameters = [PDO::FETCH_OBJ];
+  protected $fetchParameters = array(\PDO::FETCH_OBJ);
 
   /**
    * @param null|\Pixie\Connection $connection
    *
-   * @param int $fetchMode
-   * @throws Exception
+   * @throws \Pixie\Exception
    */
-  public function __construct(Connection $connection = null, $fetchMode = PDO::FETCH_OBJ)
+  public function __construct(Connection $connection = null)
   {
     if (is_null($connection)) {
       if (!$connection = Connection::getStoredConnection()) {
@@ -63,13 +62,11 @@ class QueryBuilderHandler
       }
     }
 
-    $this->connection    = $connection;
-    $this->container     = $this->connection->getContainer();
-    $this->pdo           = $this->connection->getPdoInstance();
-    $this->adapter       = $this->connection->getAdapter();
+    $this->connection = $connection;
+    $this->container = $this->connection->getContainer();
+    $this->pdo = $this->connection->getPdoInstance();
+    $this->adapter = $this->connection->getAdapter();
     $this->adapterConfig = $this->connection->getAdapterConfig();
-
-    $this->setFetchMode($fetchMode);
 
     if (isset($this->adapterConfig['prefix'])) {
       $this->tablePrefix = $this->adapterConfig['prefix'];
@@ -78,7 +75,7 @@ class QueryBuilderHandler
     // Query builder adapter instance
     $this->adapterInstance = $this->container->build(
       '\\Pixie\\QueryBuilder\\Adapters\\' . ucfirst($this->adapter),
-      [$this->connection]
+      array($this->connection)
     );
 
     $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -103,15 +100,15 @@ class QueryBuilderHandler
    * @param array $constructorArgs
    * @return QueryBuilderHandler
    */
-  public function asObject($className, $constructorArgs = [])
+  public function asObject($className, $constructorArgs = array())
   {
-    return $this->setFetchMode(PDO::FETCH_CLASS, $className, $constructorArgs);
+    return $this->setFetchMode(\PDO::FETCH_CLASS, $className, $constructorArgs);
   }
 
   /**
    * @param null|\Pixie\Connection $connection
-   * @return QueryBuilderHandler
-   * @throws Exception
+   *
+   * @return static
    */
   public function newQuery(Connection $connection = null)
   {
@@ -119,7 +116,7 @@ class QueryBuilderHandler
       $connection = $this->connection;
     }
 
-    return new static($connection, $this->getFetchMode());
+    return new static($connection);
   }
 
   /**
@@ -128,7 +125,7 @@ class QueryBuilderHandler
    *
    * @return $this
    */
-  public function query($sql, $bindings = [])
+  public function query($sql, $bindings = array())
   {
     list($this->pdoStatement) = $this->statement($sql, $bindings);
 
@@ -141,9 +138,9 @@ class QueryBuilderHandler
    *
    * @return array PDOStatement and execution time as float
    */
-  public function statement($sql, $bindings = [])
+  public function statement($sql, $bindings = array())
   {
-    $start        = microtime(true);
+    $start = microtime(true);
     $pdoStatement = $this->pdo->prepare($sql);
     foreach ($bindings as $key => $value) {
       $pdoStatement->bindValue(
@@ -153,14 +150,13 @@ class QueryBuilderHandler
       );
     }
     $pdoStatement->execute();
-    return [$pdoStatement, microtime(true) - $start];
+    return array($pdoStatement, microtime(true) - $start);
   }
 
   /**
    * Get all rows
    *
-   * @return \stdClass|array
-   * @throws Exception
+   * @return \stdClass|null
    */
   public function get()
   {
@@ -178,12 +174,22 @@ class QueryBuilderHandler
       );
     }
 
-    $start              = microtime(true);
-    $result             = call_user_func_array([$this->pdoStatement, 'fetchAll'], $this->fetchParameters);
-    $executionTime      += microtime(true) - $start;
+    $start = microtime(true);
+    $result = call_user_func_array(array($this->pdoStatement, 'fetchAll'), $this->fetchParameters);
+    $executionTime += microtime(true) - $start;
     $this->pdoStatement = null;
     $this->fireEvents('after-select', $result, $executionTime);
     return $result;
+  }
+
+  public function keyBy($key)
+  {
+    $temp = [];
+    $result = $this->get();
+    foreach ($result as $item) {
+      $temp[$item->$key] = $item;
+    }
+    return $temp;
   }
 
   /**
@@ -236,7 +242,7 @@ class QueryBuilderHandler
     unset($this->statements['limit']);
     unset($this->statements['offset']);
 
-    $count            = $this->aggregate('count');
+    $count = $this->aggregate('count');
     $this->statements = $originalStatements;
 
     return $count;
@@ -252,8 +258,8 @@ class QueryBuilderHandler
     // Get the current selects
     $mainSelects = isset($this->statements['selects']) ? $this->statements['selects'] : null;
     // Replace select with a scalar value like `count`
-    $this->statements['selects'] = [$this->raw($type . '(*) as field')];
-    $row                         = $this->get();
+    $this->statements['selects'] = array($this->raw($type . '(*) as field'));
+    $row = $this->get();
 
     // Set the select as it was
     if ($mainSelects) {
@@ -278,9 +284,9 @@ class QueryBuilderHandler
    * @return mixed
    * @throws Exception
    */
-  public function getQuery($type = 'select', $dataToBePassed = [])
+  public function getQuery($type = 'select', $dataToBePassed = array())
   {
-    $allowedTypes = ['select', 'insert', 'insertignore', 'replace', 'delete', 'update', 'criteriaonly'];
+    $allowedTypes = array('select', 'insert', 'insertignore', 'replace', 'delete', 'update', 'criteriaonly');
     if (!in_array(strtolower($type), $allowedTypes)) {
       throw new Exception($type . ' is not a known type.', 2);
     }
@@ -289,7 +295,7 @@ class QueryBuilderHandler
 
     return $this->container->build(
       '\\Pixie\\QueryBuilder\\QueryObject',
-      [$queryArr['sql'], $queryArr['bindings'], $this->pdo]
+      array($queryArr['sql'], $queryArr['bindings'], $this->pdo)
     );
   }
 
@@ -331,7 +337,7 @@ class QueryBuilderHandler
       $return = $result->rowCount() === 1 ? $this->pdo->lastInsertId() : null;
     } else {
       // Its a batch insert
-      $return        = [];
+      $return = array();
       $executionTime = 0;
       foreach ($data as $subData) {
         $queryObject = $this->getQuery($type, $subData);
@@ -444,10 +450,10 @@ class QueryBuilderHandler
   }
 
   /**
-   * @param string|array $tables Single table or array of tables
+   * @param $tables Single table or multiple tables as an array or as
+   *                multiple parameters
    *
-   * @return QueryBuilderHandler
-   * @throws Exception
+   * @return static
    */
   public function table($tables)
   {
@@ -457,8 +463,8 @@ class QueryBuilderHandler
       $tables = func_get_args();
     }
 
-    $instance = new static($this->connection, $this->getFetchMode());
-    $tables   = $this->addTablePrefix($tables, false);
+    $instance = new static($this->connection);
+    $tables = $this->addTablePrefix($tables, false);
     $instance->addStatement('tables', $tables);
     return $instance;
   }
@@ -528,15 +534,15 @@ class QueryBuilderHandler
   public function orderBy($fields, $defaultDirection = 'ASC')
   {
     if (!is_array($fields)) {
-      $fields = [$fields];
+      $fields = array($fields);
     }
 
     foreach ($fields as $key => $value) {
       $field = $key;
-      $type  = $value;
+      $type = $value;
       if (is_int($key)) {
         $field = $value;
-        $type  = $defaultDirection;
+        $type = $defaultDirection;
       }
       if (!$field instanceof Raw) {
         $field = $this->addTablePrefix($field);
@@ -579,7 +585,7 @@ class QueryBuilderHandler
    */
   public function having($key, $operator, $value, $joiner = 'AND')
   {
-    $key                           = $this->addTablePrefix($key);
+    $key = $this->addTablePrefix($key);
     $this->statements['havings'][] = compact('key', 'operator', 'value', 'joiner');
     return $this;
   }
@@ -613,10 +619,9 @@ class QueryBuilderHandler
       }
       return $this;
     }
-
     // If two params are given then assume operator is =
     if (func_num_args() == 2) {
-      $value    = $operator;
+      $value = $operator;
       $operator = '=';
     }
     return $this->whereHandler($key, $operator, $value);
@@ -633,7 +638,7 @@ class QueryBuilderHandler
   {
     // If two params are given then assume operator is =
     if (func_num_args() == 2) {
-      $value    = $operator;
+      $value = $operator;
       $operator = '=';
     }
 
@@ -651,7 +656,7 @@ class QueryBuilderHandler
   {
     // If two params are given then assume operator is =
     if (func_num_args() == 2) {
-      $value    = $operator;
+      $value = $operator;
       $operator = '=';
     }
     return $this->whereHandler($key, $operator, $value, 'AND NOT');
@@ -668,7 +673,7 @@ class QueryBuilderHandler
   {
     // If two params are given then assume operator is =
     if (func_num_args() == 2) {
-      $value    = $operator;
+      $value = $operator;
       $operator = '=';
     }
     return $this->whereHandler($key, $operator, $value, 'OR NOT');
@@ -727,7 +732,7 @@ class QueryBuilderHandler
    */
   public function whereBetween($key, $valueFrom, $valueTo)
   {
-    return $this->whereHandler($key, 'BETWEEN', [$valueFrom, $valueTo], 'AND');
+    return $this->whereHandler($key, 'BETWEEN', array($valueFrom, $valueTo), 'AND');
   }
 
   /**
@@ -739,7 +744,7 @@ class QueryBuilderHandler
    */
   public function orWhereBetween($key, $valueFrom, $valueTo)
   {
-    return $this->whereHandler($key, 'BETWEEN', [$valueFrom, $valueTo], 'OR');
+    return $this->whereHandler($key, 'BETWEEN', array($valueFrom, $valueTo), 'OR');
   }
 
   /**
@@ -803,7 +808,7 @@ class QueryBuilderHandler
 
     // Build a new JoinBuilder class, keep it by reference so any changes made
     // in the closure should reflect here
-    $joinBuilder = $this->container->build('\\Pixie\\QueryBuilder\\JoinBuilder', [$this->connection]);
+    $joinBuilder = $this->container->build('\\Pixie\\QueryBuilder\\JoinBuilder', array($this->connection));
     $joinBuilder = &$joinBuilder;
     // Call the closure with our new joinBuilder object
     $key($joinBuilder);
@@ -828,7 +833,7 @@ class QueryBuilderHandler
       $this->pdo->beginTransaction();
 
       // Get the Transaction class
-      $transaction = $this->container->build('\\Pixie\\QueryBuilder\\Transaction', [$this->connection]);
+      $transaction = $this->container->build('\\Pixie\\QueryBuilder\\Transaction', array($this->connection));
 
       // Call closure
       $callback($transaction);
@@ -895,9 +900,9 @@ class QueryBuilderHandler
    *
    * @return mixed
    */
-  public function raw($value, $bindings = [])
+  public function raw($value, $bindings = array())
   {
-    return $this->container->build('\\Pixie\\QueryBuilder\\Raw', [$value, $bindings]);
+    return $this->container->build('\\Pixie\\QueryBuilder\\Raw', array($value, $bindings));
   }
 
   /**
@@ -939,7 +944,7 @@ class QueryBuilderHandler
    */
   protected function whereHandler($key, $operator = null, $value = null, $joiner = 'AND')
   {
-    $key                          = $this->addTablePrefix($key);
+    $key = $this->addTablePrefix($key);
     $this->statements['wheres'][] = compact('key', 'operator', 'value', 'joiner');
     return $this;
   }
@@ -963,12 +968,12 @@ class QueryBuilderHandler
     // If supplied value is not an array then make it one
     $single = false;
     if (!is_array($values)) {
-      $values = [$values];
+      $values = array($values);
       // We had single value, so should return a single value
       $single = true;
     }
 
-    $return = [];
+    $return = array();
 
     foreach ($values as $key => $value) {
       // It's a raw query, just add it to our return array and continue next
@@ -1002,7 +1007,7 @@ class QueryBuilderHandler
   protected function addStatement($key, $value)
   {
     if (!is_array($value)) {
-      $value = [$value];
+      $value = array($value);
     }
 
     if (!array_key_exists($key, $this->statements)) {
@@ -1064,7 +1069,7 @@ class QueryBuilderHandler
   {
     $params = func_get_args();
     array_unshift($params, $this);
-    return call_user_func_array([$this->connection->getEventHandler(), 'fireEvents'], $params);
+    return call_user_func_array(array($this->connection->getEventHandler(), 'fireEvents'), $params);
   }
 
   /**
@@ -1073,14 +1078,5 @@ class QueryBuilderHandler
   public function getStatements()
   {
     return $this->statements;
-  }
-
-  /**
-   * @return int will return PDO Fetch mode
-   */
-  public function getFetchMode()
-  {
-    return !empty($this->fetchParameters) ?
-      current($this->fetchParameters) : PDO::FETCH_OBJ;
   }
 }
